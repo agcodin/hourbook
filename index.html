@@ -185,6 +185,12 @@ dialog::backdrop{background:rgba(31,77,43,.35)}
 .catedit .mrow{display:grid;grid-template-columns:1fr 96px;gap:8px}
 .sw{width:26px;height:26px;border-radius:50%;border:0;background:var(--c);padding:0}
 .sw[aria-pressed="true"]{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--deep)}
+.sw.custom{position:relative;display:inline-block;overflow:hidden;cursor:pointer;background:conic-gradient(#F2545B,#F2B92E,#58A84C,#3FB2E0,#6B6FF2,#C45CE0,#F2545B)}
+.sw.custom::after{content:"+";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;text-shadow:0 1px 2px rgba(0,0,0,.35);pointer-events:none}
+.sw.custom[data-on="true"]{background:var(--c);box-shadow:0 0 0 2px #fff,0 0 0 4px var(--deep)}
+.sw.custom[data-on="true"]::after{content:""}
+.sw.custom:focus-within{outline:3px solid var(--sun);outline-offset:2px}
+.sw.custom input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;cursor:pointer}
 .btn.delete{margin-top:12px;align-self:flex-start;background:#FBE9EC;border-color:#F1C3CB;color:var(--danger)}
 .btn.delete:hover{background:#F7D9DF;border-color:var(--danger)}
 .detail-actions{padding-top:8px}
@@ -364,6 +370,8 @@ const fmtTime = t => { let [h,m] = t.split(":").map(Number); const ap = h>=12?"p
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 // Colors can arrive from another device through sync; only hex values go into markup.
 const safeColor = c => /^#[0-9a-f]{3,8}$/i.test(c || "") ? c : "#8AA38B";
+// <input type="color"> only accepts #rrggbb.
+const hex6 = c => { c = safeColor(c); return c.length === 4 ? "#" + [...c.slice(1)].map(x => x + x).join("") : c.slice(0, 7); };
 
 /* ---------- Plants ---------- */
 // A session sprouts under 45 minutes, buds from 45, and blooms from 90. Month beds use hour totals.
@@ -665,7 +673,7 @@ function renderCats(){
       <label for="cn-${c.id}">Name</label>
       <input id="cn-${c.id}" data-k="name" value="${esc(c.name)}">
       <span class="lbl">Flower color</span>
-      <div class="swatches">${COLORS.map(col => `<button type="button" class="sw" style="--c:${col}" data-color="${col}" aria-label="Color ${col}" aria-pressed="${col===c.color}"></button>`).join("")}</div>
+      <div class="swatches">${COLORS.map(col => `<button type="button" class="sw" style="--c:${col}" data-color="${col}" aria-label="Color ${col}" aria-pressed="${col===c.color}"></button>`).join("")}<label class="sw custom" style="--c:${hex6(c.color)}" data-on="${!COLORS.includes(c.color)}" title="Pick any color"><input type="color" id="cc-${c.id}" data-custom value="${hex6(c.color)}" aria-label="Custom color"></label></div>
       <label for="ml-${c.id}">Custom metric</label>
       <div class="mrow"><input id="ml-${c.id}" data-k="label" value="${esc(c.metric?.label)}" placeholder="e.g. Points won"><input id="mu-${c.id}" data-k="unit" value="${esc(c.metric?.unit)}" placeholder="Unit" aria-label="Metric unit"></div>
       <button type="button" class="btn delete" data-delcat="${c.id}">${esc(deleteLabel(c))}</button>
@@ -676,6 +684,18 @@ function openCats(id){ if (id) catSel = id; renderCats(); $("cat-dlg").showModal
 $("catrows").addEventListener("input", ev => {
   const row = ev.target.closest("[data-cid]"); if (!row) return;
   const c = catById(row.dataset.cid), k = ev.target.dataset.k;
+  if (c && ev.target.matches("[data-custom]")){
+    // Update colors in place; re-rendering would close the color picker mid-drag.
+    c.color = ev.target.value;
+    row.style.setProperty("--c", c.color);
+    $("catrows").querySelector(`[data-pick="${c.id}"]`)?.style.setProperty("--c", c.color);
+    row.querySelectorAll("[data-color]").forEach(b => b.setAttribute("aria-pressed", "false"));
+    const custom = ev.target.closest(".custom");
+    custom.dataset.on = "true";
+    custom.style.setProperty("--c", c.color);
+    save();
+    return;
+  }
   if (!c || !k) return;
   if (k === "name"){
     c.name = ev.target.value;
