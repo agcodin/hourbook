@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hourbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F1F3F6; --surface:#FFFFFF; --sunk:#E8ECF1; --ink:#161D27; --muted:#5D6775; --faint:#8A94A1;
+  --line:#DAE0E7; --accent:#2946B0; --accent-ink:#FFFFFF; --accent-soft:#E3E8F8; --danger:#B3263E;
+  --today:#2946B0; --shadow:0 12px 40px rgba(22,29,39,.16);
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Instrument Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#10141A; --surface:#181E26; --sunk:#141920; --ink:#E6EAF0; --muted:#9AA4B1; --faint:#6E7885;
+    --line:#29313C; --accent:#8EA4FF; --accent-ink:#0E1426; --accent-soft:#1F2842; --danger:#F07A8C;
+    --today:#8EA4FF; --shadow:0 12px 40px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#10141A; --surface:#181E26; --sunk:#141920; --ink:#E6EAF0; --muted:#9AA4B1; --faint:#6E7885;
+  --line:#29313C; --accent:#8EA4FF; --accent-ink:#0E1426; --accent-soft:#1F2842; --danger:#F07A8C;
+  --today:#8EA4FF; --shadow:0 12px 40px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{color-scheme:light dark}
+body{margin:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45;padding-inline:20px;padding-block:20px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.brand h1{font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:-.02em;margin:0;line-height:1}
+.brand span{color:var(--muted);font-size:13px}
+.seg{display:inline-flex;background:var(--sunk);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:6px;color:var(--muted);font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.btn{border:1px solid var(--line);background:var(--surface);padding:7px 13px;border-radius:8px;font-weight:500}
+.btn:hover{border-color:var(--faint)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink);background:var(--sunk)}
+.btn.danger{color:var(--danger)}
+
+.notice{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border-radius:10px;padding:10px 14px;color:var(--ink)}
+.notice p{margin:0;flex:1;min-width:220px}
+
+/* Calendar */
+.cal-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+.monthbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.monthbar h2{font-family:var(--display);font-weight:500;font-size:22px;margin:0 8px 0 0;letter-spacing:-.01em;min-width:170px}
+.monthbar .meta{margin-left:auto;color:var(--muted);font-size:13px}
+.iconbtn{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;font-size:16px;line-height:1}
+.grid{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.dow,.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.dow div{padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);border-bottom:1px solid var(--line)}
+.day{min-height:108px;border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:transparent;text-align:left;padding:6px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.day:nth-child(7n){border-right:0}
+.day.out{background:var(--sunk)}
+.day.out .dnum{color:var(--faint)}
+.day:hover{background:var(--accent-soft)}
+.day.sel{box-shadow:inset 0 0 0 2px var(--accent)}
+.dnum{font-size:12px;font-weight:600;width:22px;height:22px;display:grid;place-items:center;border-radius:50%}
+.day.today .dnum{background:var(--today);color:var(--accent-ink)}
+.chip{display:flex;align-items:center;gap:5px;font-size:11.5px;border-radius:5px;padding:2px 5px;min-width:0;background:color-mix(in srgb,var(--c) 14%,transparent)}
+.chip i{width:6px;height:6px;border-radius:50%;background:var(--c);flex:none}
+.chip b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.chip em{font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--muted);flex:none}
+.more{font-size:11px;color:var(--muted);padding-left:5px}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;position:sticky;top:16px}
+.panel h3{font-family:var(--display);font-weight:500;font-size:19px;margin:0;letter-spacing:-.01em}
+.panel .sub{color:var(--muted);font-size:13px;margin-top:-8px}
+.elist{display:flex;flex-direction:column;gap:8px}
+.entry{display:grid;grid-template-columns:4px 1fr auto;gap:10px;align-items:stretch;border:1px solid var(--line);border-radius:9px;padding:9px 10px 9px 0;background:transparent;text-align:left;width:100%}
+.entry:hover{border-color:var(--faint)}
+.entry .bar{background:var(--c);border-radius:0 3px 3px 0}
+.entry .t{font-weight:600}
+.entry .s{color:var(--muted);font-size:12.5px}
+.entry .v{text-align:right;font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;justify-content:center}
+.entry .v strong{color:var(--ink);font-weight:500}
+.empty{color:var(--muted);font-size:13px;padding:16px;border:1px dashed var(--line);border-radius:9px;text-align:center}
+
+/* Totals */
+.tot-head{display:flex;align-items:end;gap:16px;flex-wrap:wrap}
+.tot-head h2{font-family:var(--display);font-weight:500;font-size:22px;margin:0;letter-spacing:-.01em}
+.tot-head .range{color:var(--muted);font-size:13px}
+.tot-head .seg{margin-left:auto}
+.summary{display:flex;gap:28px;flex-wrap:wrap;padding:4px 2px}
+.summary div{display:flex;flex-direction:column}
+.summary span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint)}
+.summary strong{font-family:var(--mono);font-weight:500;font-size:22px;font-variant-numeric:tabular-nums}
+.table{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.trow{display:grid;grid-template-columns:minmax(150px,1.3fr) 80px minmax(160px,2fr) minmax(130px,1fr) 28px;gap:16px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+.trow.th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);padding-block:9px}
+.trow.cat{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left}
+.trow.cat:hover{background:var(--sunk)}
+.cname{display:flex;align-items:center;gap:9px;font-weight:600;min-width:0}
+.cname i{width:10px;height:10px;border-radius:3px;background:var(--c);flex:none}
+.cname span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.timecell{display:flex;align-items:center;gap:10px}
+.timecell .track{flex:1;height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.timecell .fill{height:100%;background:var(--c);border-radius:4px}
+.timecell .num{min-width:64px;text-align:right}
+.metric .num{font-weight:500}
+.metric small{display:block;color:var(--muted);font-size:12px}
+.chev{color:var(--faint);transition:transform .15s}
+.open .chev{transform:rotate(90deg)}
+.detail{background:var(--sunk);border-bottom:1px solid var(--line);padding:6px 16px 12px}
+.drow{display:grid;grid-template-columns:120px 110px 1fr 170px 60px;gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.drow:last-child{border-bottom:0}
+.drow .note{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.metricedit{display:flex;align-items:center;gap:6px}
+.metricedit input{width:80px;padding:4px 7px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-family:var(--mono);text-align:right}
+.metricedit label{color:var(--muted);font-size:12px}
+.table .empty{margin:16px;border-color:var(--line)}
+
+/* Dialogs */
+dialog{border:1px solid var(--line);border-radius:14px;padding:0;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);width:min(460px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(10,14,20,.45)}
+.dlg{padding:20px;display:flex;flex-direction:column;gap:14px}
+.dlg h3{font-family:var(--display);font-weight:500;font-size:20px;margin:0}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;font-weight:500;color:var(--muted)}
+.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--ground);width:100%}
+.field textarea{resize:vertical;min-height:58px}
+.hint{font-size:12px;color:var(--muted)}
+.actions{display:flex;gap:8px;align-items:center}
+.actions .spacer{flex:1}
+.catrows{display:flex;flex-direction:column;gap:10px;max-height:52vh;overflow:auto;padding-right:2px}
+.catrow{display:grid;grid-template-columns:auto 1fr;gap:8px 10px;border:1px solid var(--line);border-radius:10px;padding:10px}
+.catrow .swatches{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.sw{width:20px;height:20px;border-radius:50%;border:2px solid transparent;background:var(--c);padding:0}
+.sw[aria-pressed="true"]{border-color:var(--ink)}
+.catrow input{border:1px solid var(--line);border-radius:7px;padding:6px 9px;background:var(--ground);width:100%;min-width:0}
+.catrow .dot{width:14px;height:14px;border-radius:4px;background:var(--c);align-self:center}
+.catrow .mrow{grid-column:1/-1;display:grid;grid-template-columns:1fr 90px auto;gap:8px;align-items:center}
+
+@media (max-width:900px){
+  .cal-layout{grid-template-columns:1fr}
+  .panel{position:static}
+}
+@media (max-width:700px){
+  .day{min-height:64px;padding:4px}
+  .chip{padding:0;background:transparent;width:8px;height:8px;display:inline-block}
+  .chip b,.chip em{display:none}
+  .chip i{width:8px;height:8px}
+  .day .chips{display:flex;flex-wrap:wrap;gap:3px}
+  .more{display:none}
+  .trow{grid-template-columns:1fr auto 20px;gap:4px 12px}
+  .trow.th{display:none}
+  .trow .sess{display:none}
+  .trow .timecell{grid-column:1/-1;grid-row:2}
+  .trow .metric{grid-column:2;grid-row:1;text-align:right}
+  .trow .chev{grid-column:3;grid-row:1}
+  .drow{grid-template-columns:1fr auto;gap:4px 10px}
+  .drow .note{grid-column:1/-1}
+  .fields{grid-template-columns:1fr}
+  .brand span{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><h1>Hourbook</h1><span>where your hours went</span></div>
+    <div class="seg" role="group" aria-label="View">
+      <button id="v-cal" aria-pressed="true">Calendar</button>
+      <button id="v-tot" aria-pressed="false">Totals</button>
+    </div>
+    <button class="btn" id="open-cats">Categories</button>
+    <button class="btn primary" id="log-btn">+ Log time</button>
+  </header>
+
+
+  <section id="cal-view">
+    <div class="cal-layout">
+      <div>
+        <div class="monthbar">
+          <h2 id="month-title"></h2>
+          <button class="iconbtn" id="prev-m" aria-label="Previous month">‹</button>
+          <button class="iconbtn" id="next-m" aria-label="Next month">›</button>
+          <button class="btn ghost" id="today-btn">Today</button>
+          <span class="meta num" id="month-meta"></span>
+        </div>
+        <div class="grid">
+          <div class="dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+          <div class="days" id="days"></div>
+        </div>
+      </div>
+      <aside class="panel" id="day-panel"></aside>
+    </div>
+  </section>
+
+  <section id="tot-view" hidden>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="tot-head">
+        <div><h2>Totals by category</h2><div class="range num" id="range-label"></div></div>
+        <div class="seg" role="group" aria-label="Range">
+          <button data-range="week">Week</button>
+          <button data-range="month" aria-pressed="true">Month</button>
+          <button data-range="year">Year</button>
+          <button data-range="all">All time</button>
+        </div>
+      </div>
+      <div class="summary" id="summary"></div>
+      <div class="table" id="table"></div>
+    </div>
+  </section>
+</div>
+
+<dialog id="entry-dlg">
+  <form class="dlg" id="entry-form" method="dialog">
+    <h3 id="entry-title">Log time</h3>
+    <div class="fields">
+      <div class="field full">
+        <label for="f-cat">Category</label>
+        <select id="f-cat" required></select>
+      </div>
+      <div class="field full" id="f-newcat-wrap" hidden>
+        <label for="f-newcat">New category name</label>
+        <input id="f-newcat" placeholder="e.g. Climbing">
+      </div>
+      <div class="field full">
+        <label for="f-date">Date</label>
+        <input type="date" id="f-date" required>
+      </div>
+      <div class="field">
+        <label for="f-start">Start</label>
+        <input type="time" id="f-start" required>
+      </div>
+      <div class="field">
+        <label for="f-end">End</label>
+        <input type="time" id="f-end" required>
+      </div>
+      <div class="field full" id="f-metric-wrap">
+        <label for="f-metric" id="f-metric-label">Metric</label>
+        <input type="number" id="f-metric" step="any" inputmode="decimal" placeholder="Leave blank if not tracked">
+      </div>
+      <div class="field full">
+        <label for="f-note">Note</label>
+        <textarea id="f-note" placeholder="Optional"></textarea>
+      </div>
+    </div>
+    <div class="hint num" id="f-duration"></div>
+    <div class="actions">
+      <button type="button" class="btn ghost danger" id="f-delete">Delete</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="f-cancel">Cancel</button>
+      <button type="submit" class="btn primary" id="f-save">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="cat-dlg">
+  <div class="dlg">
+    <h3>Categories</h3>
+    <p class="hint" style="margin:0">Each category tracks time automatically. Add a custom metric, like points won or pages read, to log a number with every entry.</p>
+    <div class="catrows" id="catrows"></div>
+    <div class="actions">
+      <button class="btn" id="add-cat">+ Add category</button>
+      <span class="spacer"></span>
+      <button class="btn primary" id="cats-done">Done</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="confirm-dlg">
+  <div class="dlg">
+    <h3 id="confirm-title">Are you sure?</h3>
+    <p class="hint" id="confirm-msg" style="margin:0"></p>
+    <div class="actions">
+      <span class="spacer"></span>
+      <button class="btn" id="confirm-no">Cancel</button>
+      <button class="btn primary" id="confirm-yes">Delete</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function(){
+const KEY = "hourbook.v1";
+const COLORS = ["#2F6FDE","#D9642B","#1E9E78","#A94CC0","#C2930F","#D1435B","#2E97B5","#6E8030"];
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(36).slice(2,10);
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const toMin = t => { const [h,m] = t.split(":").map(Number); return h*60+m; };
+const durMin = e => { let d = toMin(e.end) - toMin(e.start); if (d < 0) d += 1440; return d; };
+const fmtDur = m => { const h = Math.floor(m/60), r = m%60; return h ? (r ? `${h}h ${r}m` : `${h}h`) : `${r}m`; };
+const fmtNum = n => (Math.round(n*100)/100).toLocaleString();
+const fmtTime = t => { let [h,m] = t.split(":").map(Number); const ap = h>=12?"pm":"am"; h = h%12||12; return m ? `${h}:${pad(m)}${ap}` : `${h}${ap}`; };
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function load(){
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    // Earlier builds saved generated example data flagged `example`; start those browsers fresh.
+    if (s && !s.example) return s;
+  } catch(e){}
+  return {categories:[], entries:[]};
+}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
+
+let state = load();
+const today = ymd(new Date());
+let view = "cal", range = "month";
+let cursor = new Date(); cursor.setDate(1);
+let selected = today;
+const expanded = new Set();
+const catById = id => state.categories.find(c => c.id === id);
+const sortEntries = arr => arr.slice().sort((a,b) => a.date === b.date ? toMin(a.start)-toMin(b.start) : a.date < b.date ? -1 : 1);
+
+/* ---------- Calendar ---------- */
+function renderCalendar(){
+  const y = cursor.getFullYear(), m = cursor.getMonth();
+  $("month-title").textContent = `${MONTHS[m]} ${y}`;
+  const first = new Date(y, m, 1), start = new Date(y, m, 1-first.getDay());
+  const weeks = Math.ceil((first.getDay() + new Date(y, m+1, 0).getDate())/7);
+  const byDate = {};
+  state.entries.forEach(e => (byDate[e.date] ||= []).push(e));
+  let html = "", monthMin = 0, monthCount = 0;
+  for (let i = 0; i < weeks*7; i++){
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate()+i), key = ymd(d);
+    const list = sortEntries(byDate[key] || []);
+    if (d.getMonth() === m){ list.forEach(e => { monthMin += durMin(e); monthCount++; }); }
+    const cls = ["day", d.getMonth()!==m && "out", key===today && "today", key===selected && "sel"].filter(Boolean).join(" ");
+    const chips = list.slice(0,3).map(e => { const c = catById(e.catId) || {name:"?",color:"#888"};
+      return `<span class="chip" style="--c:${c.color}"><i></i><b>${esc(c.name)}</b><em>${fmtDur(durMin(e))}</em></span>`; }).join("");
+    const more = list.length > 3 ? `<span class="more">+${list.length-3} more</span>` : "";
+    html += `<button class="${cls}" data-date="${key}" aria-label="${MONTHS[d.getMonth()]} ${d.getDate()}, ${list.length} entries"><span class="dnum num">${d.getDate()}</span><span class="chips" style="display:contents">${chips}</span>${more}</button>`;
+  }
+  $("days").innerHTML = html;
+  $("month-meta").textContent = `${fmtDur(monthMin)} · ${monthCount} sessions`;
+}
+function renderDay(){
+  const d = parseYmd(selected);
+  const list = sortEntries(state.entries.filter(e => e.date === selected));
+  const total = list.reduce((s,e) => s+durMin(e), 0);
+  const label = d.toLocaleDateString(undefined, {weekday:"long", month:"long", day:"numeric"});
+  const items = list.length ? list.map(e => {
+    const c = catById(e.catId) || {name:"?",color:"#888",metric:{}};
+    const mv = c.metric?.label && e.value != null && e.value !== "" ? `<span>${fmtNum(e.value)} ${esc(c.metric.unit||c.metric.label)}</span>` : "";
+    return `<button class="entry" data-entry="${e.id}" style="--c:${c.color}"><span class="bar"></span>
+      <span><div class="t">${esc(c.name)}</div><div class="s num">${fmtTime(e.start)} – ${fmtTime(e.end)}${e.note ? " · "+esc(e.note) : ""}</div></span>
+      <span class="v num"><strong>${fmtDur(durMin(e))}</strong>${mv}</span></button>`;
+  }).join("") : `<div class="empty">Nothing logged on this day.</div>`;
+  $("day-panel").innerHTML = `<h3>${esc(label)}</h3><div class="sub num">${list.length ? `${fmtDur(total)} across ${list.length} ${list.length===1?"session":"sessions"}` : "No time logged"}</div>
+    <div class="elist">${items}</div><button class="btn primary" id="add-day">+ Log time on this day</button>`;
+}
+
+/* ---------- Totals ---------- */
+function rangeBounds(){
+  const n = new Date();
+  if (range === "week"){ const s = new Date(n.getFullYear(), n.getMonth(), n.getDate()-n.getDay()); return [s, new Date(s.getFullYear(), s.getMonth(), s.getDate()+6)]; }
+  if (range === "month") return [new Date(n.getFullYear(), n.getMonth(), 1), new Date(n.getFullYear(), n.getMonth()+1, 0)];
+  if (range === "year") return [new Date(n.getFullYear(), 0, 1), new Date(n.getFullYear(), 11, 31)];
+  return null;
+}
+function renderTotals(){
+  document.querySelectorAll("[data-range]").forEach(b => b.setAttribute("aria-pressed", b.dataset.range === range));
+  const b = rangeBounds();
+  const opt = {month:"short", day:"numeric", year:"numeric"};
+  $("range-label").textContent = b ? `${b[0].toLocaleDateString(undefined,opt)} – ${b[1].toLocaleDateString(undefined,opt)}` : "Every entry you've logged";
+  const inRange = state.entries.filter(e => !b || (e.date >= ymd(b[0]) && e.date <= ymd(b[1])));
+  const rows = state.categories.map(c => {
+    const es = sortEntries(inRange.filter(e => e.catId === c.id)).reverse();
+    const vals = es.filter(e => e.value != null && e.value !== "");
+    return {c, es, min: es.reduce((s,e) => s+durMin(e), 0), metric: vals.reduce((s,e) => s+Number(e.value), 0), mcount: vals.length};
+  }).sort((a,b) => b.min - a.min);
+  const totalMin = rows.reduce((s,r) => s+r.min, 0), maxMin = Math.max(1, ...rows.map(r => r.min));
+  const activeDays = new Set(inRange.map(e => e.date)).size;
+  $("summary").innerHTML = `<div><span>Total time</span><strong>${fmtDur(totalMin)}</strong></div>
+    <div><span>Sessions</span><strong>${inRange.length}</strong></div>
+    <div><span>Active days</span><strong>${activeDays}</strong></div>`;
+  if (!state.categories.length){ $("table").innerHTML = `<div class="empty">Add a category to start tracking.</div>`; return; }
+  let html = `<div class="trow th"><div>Category</div><div>Sessions</div><div>Time</div><div>Custom metric</div><div></div></div>`;
+  rows.forEach(({c, es, min, metric, mcount}) => {
+    const open = expanded.has(c.id);
+    const share = totalMin ? Math.round(min/totalMin*100) : 0;
+    const metricCell = c.metric?.label
+      ? `<span class="num">${fmtNum(metric)} ${esc(c.metric.unit||"")}</span><small>${esc(c.metric.label)}${mcount ? ` · avg ${fmtNum(metric/mcount)}` : ""}</small>`
+      : `<small>No metric</small>`;
+    html += `<button class="trow cat ${open?"open":""}" data-cat="${c.id}" style="--c:${c.color}" aria-expanded="${open}">
+      <div class="cname"><i></i><span>${esc(c.name)}</span></div>
+      <div class="sess num">${es.length}</div>
+      <div class="timecell"><div class="track"><div class="fill" style="width:${min/maxMin*100}%"></div></div><span class="num" title="${share}% of total">${fmtDur(min)}</span></div>
+      <div class="metric">${metricCell}</div>
+      <div class="chev" aria-hidden="true">›</div></button>`;
+    if (open){
+      html += `<div class="detail">` + (es.length ? es.map(e => `<div class="drow">
+        <span class="num">${parseYmd(e.date).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</span>
+        <span class="num">${fmtDur(durMin(e))}</span>
+        <span class="note">${esc(e.note) || `${fmtTime(e.start)} – ${fmtTime(e.end)}`}</span>
+        ${c.metric?.label ? `<span class="metricedit"><input id="mv-${e.id}" type="number" step="any" data-mv="${e.id}" value="${e.value ?? ""}" aria-label="${esc(c.metric.label)}"><label for="mv-${e.id}">${esc(c.metric.unit||c.metric.label)}</label></span>` : "<span></span>"}
+        <button class="btn ghost" data-entry="${e.id}">Edit</button></div>`).join("") : `<div class="hint" style="padding:8px 0">No entries in this range.</div>`) + `</div>`;
+    }
+  });
+  $("table").innerHTML = html;
+}
+
+function render(){
+  $("cal-view").hidden = view !== "cal";
+  $("tot-view").hidden = view !== "tot";
+  $("v-cal").setAttribute("aria-pressed", view === "cal");
+  $("v-tot").setAttribute("aria-pressed", view === "tot");
+  if (view === "cal"){ renderCalendar(); renderDay(); } else renderTotals();
+}
+
+/* ---------- Entry dialog ---------- */
+let editing = null;
+function fillCatSelect(sel){
+  $("f-cat").innerHTML = state.categories.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("") + `<option value="__new">+ New category…</option>`;
+  if (sel) $("f-cat").value = sel;
+}
+function syncMetricField(){
+  const c = catById($("f-cat").value);
+  const has = c && c.metric?.label;
+  $("f-metric-wrap").hidden = !has;
+  if (has) $("f-metric-label").textContent = `${c.metric.label}${c.metric.unit ? ` (${c.metric.unit})` : ""}`;
+}
+function syncDuration(){
+  const s = $("f-start").value, e = $("f-end").value;
+  $("f-duration").textContent = s && e ? `Duration: ${fmtDur(durMin({start:s,end:e}))}` : "";
+}
+function openEntry(entry, date){
+  if (!state.categories.length){ openCats(); return; }
+  editing = entry || null;
+  $("entry-title").textContent = entry ? "Edit entry" : "Log time";
+  fillCatSelect(entry ? entry.catId : (openEntry.lastCat && catById(openEntry.lastCat) ? openEntry.lastCat : state.categories[0].id));
+  $("f-date").value = entry ? entry.date : (date || selected);
+  $("f-start").value = entry ? entry.start : "18:00";
+  $("f-end").value = entry ? entry.end : "19:00";
+  $("f-metric").value = entry && entry.value != null ? entry.value : "";
+  $("f-note").value = entry ? entry.note : "";
+  $("f-delete").hidden = !entry;
+  $("f-newcat").value = ""; $("f-newcat").required = false; $("f-newcat-wrap").hidden = true;
+  syncMetricField(); syncDuration();
+  $("entry-dlg").showModal();
+}
+// In-page replacement for confirm(): sandboxed iframes silently block native modals.
+function askConfirm(title, message, yesLabel = "Delete"){
+  return new Promise(resolve => {
+    const dlg = $("confirm-dlg");
+    $("confirm-title").textContent = title;
+    $("confirm-msg").textContent = message;
+    $("confirm-yes").textContent = yesLabel;
+    const finish = ok => { dlg.close(); $("confirm-yes").onclick = $("confirm-no").onclick = dlg.oncancel = null; resolve(ok); };
+    $("confirm-yes").onclick = () => finish(true);
+    $("confirm-no").onclick = () => finish(false);
+    dlg.oncancel = ev => { ev.preventDefault(); finish(false); };
+    dlg.showModal();
+  });
+}
+$("f-cat").addEventListener("change", () => {
+  const isNew = $("f-cat").value === "__new";
+  $("f-newcat-wrap").hidden = !isNew;
+  $("f-newcat").required = isNew;
+  if (isNew) $("f-newcat").focus();
+  syncMetricField();
+});
+$("f-start").addEventListener("input", syncDuration);
+$("f-end").addEventListener("input", syncDuration);
+$("f-cancel").addEventListener("click", () => $("entry-dlg").close());
+$("entry-form").addEventListener("submit", ev => {
+  ev.preventDefault();
+  let catId = $("f-cat").value;
+  if (catId === "__new"){
+    const name = $("f-newcat").value.trim(); if (!name) return;
+    const c = {id:uid(), name, color:COLORS[state.categories.length % COLORS.length], metric:{label:"", unit:""}};
+    state.categories.push(c); catId = c.id;
+  }
+  if (!catById(catId)) return;
+  const raw = $("f-metric").value;
+  const data = {catId, date:$("f-date").value, start:$("f-start").value, end:$("f-end").value,
+    value: raw === "" || $("f-metric-wrap").hidden ? null : Number(raw), note:$("f-note").value.trim()};
+  if (editing) Object.assign(editing, data); else state.entries.push({id:uid(), ...data});
+  openEntry.lastCat = catId;
+  selected = data.date;
+  const d = parseYmd(data.date); if (view === "cal" && (d.getMonth() !== cursor.getMonth() || d.getFullYear() !== cursor.getFullYear())) cursor = new Date(d.getFullYear(), d.getMonth(), 1);
+  save(); $("entry-dlg").close(); render();
+});
+$("f-delete").addEventListener("click", async () => {
+  if (!editing || !await askConfirm("Delete this entry?", "This removes it from the calendar and your totals.")) return;
+  state.entries = state.entries.filter(e => e !== editing);
+  save(); $("entry-dlg").close(); render();
+});
+
+/* ---------- Categories dialog ---------- */
+function renderCats(){
+  $("catrows").innerHTML = state.categories.map(c => `<div class="catrow" style="--c:${c.color}" data-cid="${c.id}">
+    <span class="dot"></span><input id="cn-${c.id}" data-k="name" value="${esc(c.name)}" aria-label="Category name">
+    <div class="swatches">${COLORS.map(col => `<button class="sw" style="--c:${col}" data-color="${col}" aria-label="Color ${col}" aria-pressed="${col===c.color}"></button>`).join("")}</div>
+    <div class="mrow"><input id="ml-${c.id}" data-k="label" value="${esc(c.metric?.label)}" placeholder="Custom metric, e.g. Points won" aria-label="Metric name">
+      <input id="mu-${c.id}" data-k="unit" value="${esc(c.metric?.unit)}" placeholder="Unit" aria-label="Metric unit">
+      <button class="btn ghost danger" data-delcat="${c.id}">Delete</button></div></div>`).join("")
+    || `<div class="empty">No categories yet.</div>`;
+}
+function openCats(){ renderCats(); $("cat-dlg").showModal(); }
+$("catrows").addEventListener("input", ev => {
+  const row = ev.target.closest("[data-cid]"); if (!row) return;
+  const c = catById(row.dataset.cid), k = ev.target.dataset.k;
+  if (k === "name") c.name = ev.target.value;
+  else { c.metric ||= {label:"",unit:""}; c.metric[k] = ev.target.value; }
+  save();
+});
+$("catrows").addEventListener("click", async ev => {
+  const sw = ev.target.closest("[data-color]"), del = ev.target.closest("[data-delcat]");
+  if (sw){ const row = sw.closest("[data-cid]"); catById(row.dataset.cid).color = sw.dataset.color; save(); renderCats(); }
+  if (del){
+    const id = del.dataset.delcat, n = state.entries.filter(e => e.catId === id).length;
+    const name = catById(id)?.name || "this category";
+    if (!await askConfirm(`Delete ${name}?`, n ? `Its ${n} ${n===1?"entry":"entries"} will be deleted too.` : "It has no entries.")) return;
+    state.categories = state.categories.filter(c => c.id !== id);
+    state.entries = state.entries.filter(e => e.catId !== id);
+    save(); renderCats();
+  }
+});
+$("add-cat").addEventListener("click", () => {
+  const c = {id:uid(), name:"New category", color:COLORS[state.categories.length % COLORS.length], metric:{label:"", unit:""}};
+  state.categories.push(c); save(); renderCats();
+  const inp = $("cn-"+c.id); inp.focus(); inp.select();
+});
+$("cats-done").addEventListener("click", () => $("cat-dlg").close());
+$("cat-dlg").addEventListener("close", render);
+
+/* ---------- Wiring ---------- */
+$("v-cal").addEventListener("click", () => { view = "cal"; render(); });
+$("v-tot").addEventListener("click", () => { view = "tot"; render(); });
+$("open-cats").addEventListener("click", openCats);
+$("log-btn").addEventListener("click", () => openEntry(null));
+$("prev-m").addEventListener("click", () => { cursor = new Date(cursor.getFullYear(), cursor.getMonth()-1, 1); renderCalendar(); });
+$("next-m").addEventListener("click", () => { cursor = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1); renderCalendar(); });
+$("today-btn").addEventListener("click", () => { cursor = new Date(); cursor.setDate(1); selected = today; render(); });
+$("days").addEventListener("click", ev => { const d = ev.target.closest("[data-date]"); if (!d) return; selected = d.dataset.date; renderCalendar(); renderDay(); });
+$("days").addEventListener("dblclick", ev => { const d = ev.target.closest("[data-date]"); if (d) openEntry(null, d.dataset.date); });
+$("day-panel").addEventListener("click", ev => {
+  if (ev.target.closest("#add-day")) return openEntry(null, selected);
+  const e = ev.target.closest("[data-entry]"); if (e) openEntry(state.entries.find(x => x.id === e.dataset.entry));
+});
+document.querySelectorAll("[data-range]").forEach(b => b.addEventListener("click", () => { range = b.dataset.range; renderTotals(); }));
+$("table").addEventListener("click", ev => {
+  const ed = ev.target.closest("[data-entry]");
+  if (ed) return openEntry(state.entries.find(x => x.id === ed.dataset.entry));
+  const row = ev.target.closest("[data-cat]"); if (!row) return;
+  const id = row.dataset.cat; expanded.has(id) ? expanded.delete(id) : expanded.add(id); renderTotals();
+});
+$("table").addEventListener("change", ev => {
+  const id = ev.target.dataset?.mv; if (!id) return;
+  const e = state.entries.find(x => x.id === id); if (!e) return;
+  e.value = ev.target.value === "" ? null : Number(ev.target.value);
+  save(); renderTotals();
+});
+
+render();
+})();
+</script>
+
+</body>
+</html>
