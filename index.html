@@ -10,7 +10,7 @@
 <style>
 :root{
   --ground:#F1F3F6; --surface:#FFFFFF; --sunk:#E8ECF1; --ink:#161D27; --muted:#5D6775; --faint:#8A94A1;
-  --line:#DAE0E7; --accent:#2946B0; --accent-ink:#FFFFFF; --accent-soft:#E3E8F8; --danger:#B3263E;
+  --line:#DAE0E7; --accent:#2946B0; --accent-ink:#FFFFFF; --accent-soft:#E3E8F8; --danger:#B3263E; --ok:#1E8A5A; --warn:#B7791F;
   --today:#2946B0; --shadow:0 12px 40px rgba(22,29,39,.16);
   --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
   --body:"Instrument Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -19,13 +19,13 @@
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --ground:#10141A; --surface:#181E26; --sunk:#141920; --ink:#E6EAF0; --muted:#9AA4B1; --faint:#6E7885;
-    --line:#29313C; --accent:#8EA4FF; --accent-ink:#0E1426; --accent-soft:#1F2842; --danger:#F07A8C;
+    --line:#29313C; --accent:#8EA4FF; --accent-ink:#0E1426; --accent-soft:#1F2842; --danger:#F07A8C; --ok:#5CC98F; --warn:#E6B450;
     --today:#8EA4FF; --shadow:0 12px 40px rgba(0,0,0,.5);
   }
 }
 :root[data-theme="dark"]{
   --ground:#10141A; --surface:#181E26; --sunk:#141920; --ink:#E6EAF0; --muted:#9AA4B1; --faint:#6E7885;
-  --line:#29313C; --accent:#8EA4FF; --accent-ink:#0E1426; --accent-soft:#1F2842; --danger:#F07A8C;
+  --line:#29313C; --accent:#8EA4FF; --accent-ink:#0E1426; --accent-soft:#1F2842; --danger:#F07A8C; --ok:#5CC98F; --warn:#E6B450;
   --today:#8EA4FF; --shadow:0 12px 40px rgba(0,0,0,.5);
 }
 *{box-sizing:border-box}
@@ -53,6 +53,14 @@ header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
 .btn.ghost:hover{color:var(--ink);background:var(--sunk)}
 .btn.danger{color:var(--danger)}
+.account{display:flex;align-items:center;gap:8px}
+.sync{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);max-width:230px}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+.sync[data-state="synced"] i{background:var(--ok)}
+.sync[data-state="saving"] i{background:var(--warn)}
+.sync[data-state="error"]{color:var(--danger)}
+.sync[data-state="error"] i{background:var(--danger)}
+.sync span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .notice{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border-radius:10px;padding:10px 14px;color:var(--ink)}
 .notice p{margin:0;flex:1;min-width:220px}
@@ -186,6 +194,11 @@ dialog::backdrop{background:rgba(10,14,20,.45)}
     </div>
     <button class="btn" id="open-cats">Categories</button>
     <button class="btn primary" id="log-btn">+ Log time</button>
+    <div class="account" id="account" hidden>
+      <span class="sync" id="sync" data-state="idle" role="status" hidden><i></i><span id="sync-label"></span></span>
+      <button class="btn" id="signin-btn">Sign in to sync</button>
+      <button class="btn ghost" id="signout-btn" hidden>Sign out</button>
+    </div>
   </header>
 
 
@@ -318,7 +331,11 @@ function load(){
   } catch(e){}
   return {categories:[], entries:[]};
 }
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
+let syncer = null; // set by sync.js while someone is signed in
+function save(){
+  if (syncer) return syncer.push();
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){}
+}
 
 let state = load();
 const today = ymd(new Date());
@@ -485,14 +502,16 @@ $("entry-form").addEventListener("submit", ev => {
   let catId = $("f-cat").value;
   if (catId === "__new"){
     const name = $("f-newcat").value.trim(); if (!name) return;
-    const c = {id:uid(), name, color:COLORS[state.categories.length % COLORS.length], metric:{label:"", unit:""}};
+    const c = {id:uid(), name, color:COLORS[state.categories.length % COLORS.length], metric:{label:"", unit:""}, created:Date.now()};
     state.categories.push(c); catId = c.id;
   }
   if (!catById(catId)) return;
   const raw = $("f-metric").value;
   const data = {catId, date:$("f-date").value, start:$("f-start").value, end:$("f-end").value,
     value: raw === "" || $("f-metric-wrap").hidden ? null : Number(raw), note:$("f-note").value.trim()};
-  if (editing) Object.assign(editing, data); else state.entries.push({id:uid(), ...data});
+  // Look the entry up by id: a sync may have swapped in fresh objects while the dialog was open.
+  const target = editing && state.entries.find(e => e.id === editing.id);
+  if (target) Object.assign(target, data); else state.entries.push({id:uid(), ...data});
   openEntry.lastCat = catId;
   selected = data.date;
   const d = parseYmd(data.date); if (view === "cal" && (d.getMonth() !== cursor.getMonth() || d.getFullYear() !== cursor.getFullYear())) cursor = new Date(d.getFullYear(), d.getMonth(), 1);
@@ -500,7 +519,7 @@ $("entry-form").addEventListener("submit", ev => {
 });
 $("f-delete").addEventListener("click", async () => {
   if (!editing || !await askConfirm("Delete this entry?", "This removes it from the calendar and your totals.")) return;
-  state.entries = state.entries.filter(e => e !== editing);
+  state.entries = state.entries.filter(e => e.id !== editing.id);
   save(); $("entry-dlg").close(); render();
 });
 
@@ -535,7 +554,7 @@ $("catrows").addEventListener("click", async ev => {
   }
 });
 $("add-cat").addEventListener("click", () => {
-  const c = {id:uid(), name:"New category", color:COLORS[state.categories.length % COLORS.length], metric:{label:"", unit:""}};
+  const c = {id:uid(), name:"New category", color:COLORS[state.categories.length % COLORS.length], metric:{label:"", unit:""}, created:Date.now()};
   state.categories.push(c); save(); renderCats();
   const inp = $("cn-"+c.id); inp.focus(); inp.select();
 });
@@ -570,9 +589,24 @@ $("table").addEventListener("change", ev => {
   save(); renderTotals();
 });
 
+function refresh(){
+  render();
+  if ($("cat-dlg").open && !$("catrows").contains(document.activeElement)) renderCats();
+}
+// Bridge for sync.js: while signed in, the account's synced log replaces this browser's local one.
+window.Hourbook = {
+  get state(){ return state; },
+  loadLocal: load,
+  clearLocal(){ try { localStorage.removeItem(KEY); } catch(e){} },
+  attach(s, next){ syncer = s; state = next; refresh(); },
+  detach(){ syncer = null; state = load(); refresh(); },
+  refresh,
+};
+
 render();
 })();
 </script>
+<script type="module" src="sync.js"></script>
 
 </body>
 </html>
