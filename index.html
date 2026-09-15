@@ -4,11 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hourbook</title>
-<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="manifest" href="manifest.webmanifest">
+<!-- ?v= forces browsers to refetch icons they've cached; bump it whenever the icon changes. -->
+<link rel="icon" href="icons/favicon.svg?v=2" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png?v=2" sizes="32x32" type="image/png">
+<link rel="icon" href="icons/favicon-16.png?v=2" sizes="16x16" type="image/png">
+<link rel="shortcut icon" href="icons/favicon-32.png?v=2">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
+<link rel="manifest" href="manifest.webmanifest?v=2">
 <meta name="theme-color" content="#DCEAD2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -109,7 +111,8 @@ header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .entry .v strong{font-family:var(--round);font-size:18px;color:var(--deep);font-weight:700;line-height:1.1}
 .empty{color:var(--muted);font-size:15px;padding:6px 2px}
 .beds{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.bed{position:relative;background:linear-gradient(var(--plot) 68%,var(--plot-2));border-radius:18px;padding:30px 8px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+.bed:hover{transform:translateY(-2px);box-shadow:inset 0 0 0 2px var(--leaf)}
+.bed{border:0;font:inherit;color:inherit;cursor:pointer;transition:transform .12s;position:relative;background:linear-gradient(var(--plot) 68%,var(--plot-2));border-radius:18px;padding:30px 8px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
 .bed svg{overflow:visible}
 .bed b{font-weight:800;font-size:15px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px}
 .bed small{font-size:12.5px;color:var(--muted);line-height:1.3}
@@ -167,14 +170,24 @@ dialog::backdrop{background:rgba(31,77,43,.35)}
 #f-duration{font-family:var(--round);font-size:17px;color:var(--deep)}
 .actions{display:flex;gap:8px;align-items:center}
 .actions .spacer{flex:1}
-.catrows{display:flex;flex-direction:column;gap:10px;max-height:52vh;overflow:auto;padding:2px}
-.catrow{display:grid;grid-template-columns:auto 1fr;gap:8px 10px;border-radius:16px;padding:11px;background:#fff}
-.catrow .swatches{grid-column:1/-1;display:flex;gap:7px;flex-wrap:wrap}
-.sw{width:24px;height:24px;border-radius:50%;border:0;background:var(--c);padding:0}
+.catrows{display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow:auto;padding:2px}
+.catpills{display:flex;flex-wrap:wrap;gap:8px}
+.catpill{display:inline-flex;align-items:center;gap:7px;max-width:100%;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px 6px 9px;font-weight:700;color:var(--text)}
+.catpill:hover{border-color:var(--leaf)}
+.catpill i{width:14px;height:14px;border-radius:50% 0 50% 0;background:var(--c);flex:none;transform:rotate(-10deg)}
+.catpill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.catpill[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:var(--card)}
+.catedit{display:flex;flex-direction:column;gap:6px;background:#fff;border-radius:18px;padding:14px 14px 16px;box-shadow:inset 4px 0 0 var(--c)}
+.catedit label,.catedit .lbl{font-size:13px;font-weight:800;color:var(--muted);margin-top:4px}
+.catedit input{border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--card);width:100%;min-width:0}
+.catedit input:focus{outline:none;border-color:var(--leaf);box-shadow:0 0 0 3px rgba(88,168,76,.22)}
+.catedit .swatches{display:flex;gap:8px;flex-wrap:wrap}
+.catedit .mrow{display:grid;grid-template-columns:1fr 96px;gap:8px}
+.sw{width:26px;height:26px;border-radius:50%;border:0;background:var(--c);padding:0}
 .sw[aria-pressed="true"]{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--deep)}
-.catrow input{border:1.5px solid var(--line);border-radius:10px;padding:7px 10px;background:var(--card);width:100%;min-width:0}
-.catrow .dot{width:16px;height:16px;border-radius:50% 0 50% 0;background:var(--c);align-self:center;transform:rotate(-10deg)}
-.catrow .mrow{grid-column:1/-1;display:grid;grid-template-columns:1fr 90px auto;gap:8px;align-items:center}
+.btn.delete{margin-top:12px;align-self:flex-start;background:#FBE9EC;border-color:#F1C3CB;color:var(--danger)}
+.btn.delete:hover{background:#F7D9DF;border-color:var(--danger)}
+.detail-actions{padding-top:8px}
 
 @media (max-width:1060px){
   .cal-layout{grid-template-columns:1fr}
@@ -310,7 +323,7 @@ dialog::backdrop{background:rgba(31,77,43,.35)}
 <dialog id="cat-dlg">
   <div class="dlg">
     <h3>Categories</h3>
-    <p class="hint" style="margin:0">Each category is a plant in your garden and tracks time automatically. Add a custom metric, like points won or pages read, to log a number with every session.</p>
+    <p class="hint" style="margin:0">Pick a category to rename it, change its flower color, set a custom metric (like points won or pages read), or delete it.</p>
     <div class="catrows" id="catrows"></div>
     <div class="actions">
       <button class="btn" id="add-cat">+ Add category</button>
@@ -486,7 +499,8 @@ function renderTotals(){
         <span class="num">${fmtDur(durMin(e))}</span>
         <span class="note">${esc(e.note) || `${fmtTime(e.start)} – ${fmtTime(e.end)}`}</span>
         ${c.metric?.label ? `<span class="metricedit"><input id="mv-${e.id}" type="number" step="any" data-mv="${e.id}" value="${e.value ?? ""}" aria-label="${esc(c.metric.label)}"><label for="mv-${e.id}">${esc(c.metric.unit||c.metric.label)}</label></span>` : "<span></span>"}
-        <button class="btn ghost" data-entry="${e.id}">Edit</button></div>`).join("") : `<div class="hint" style="padding:8px 0">No sessions in this range.</div>`) + `</div>`;
+        <button class="btn ghost" data-entry="${e.id}">Edit</button></div>`).join("") : `<div class="hint" style="padding:8px 0">No sessions in this range.</div>`)
+        + `<div class="detail-actions"><button type="button" class="btn ghost" data-editcat="${c.id}">Edit or delete ${esc(c.name)}</button></div></div>`;
     }
   });
   $("table").innerHTML = html;
@@ -540,8 +554,8 @@ function renderMonthTotals(){
         const stage = stageOf(r.min, BED_STAGES);
         const nextAt = stage < 3 ? BED_STAGES[stage-1] - r.min : 0;
         const metric = r.c.metric?.label && r.hasMetric ? ` · ${fmtNum(r.metric)} ${esc(r.c.metric.unit || r.c.metric.label)}` : "";
-        return `<div class="bed" style="--c:${safeColor(r.c.color)}"><em>${STAGE_NAMES[stage]}</em>${plantSvg(r.c.color, r.min, true)}
-          <b>${esc(r.c.name)}</b><small class="num">${fmtDur(r.min)}${metric}</small>${nextAt ? `<span class="next">${fmtDur(nextAt)} to ${stage === 1 ? "bud" : "bloom"}</span>` : ""}</div>`;
+        return `<button type="button" class="bed" data-bed="${r.c.id}" style="--c:${safeColor(r.c.color)}" aria-label="Edit or delete ${esc(r.c.name)}"><em>${STAGE_NAMES[stage]}</em>${plantSvg(r.c.color, r.min, true)}
+          <b>${esc(r.c.name)}</b><small class="num">${fmtDur(r.min)}${metric}</small>${nextAt ? `<span class="next">${fmtDur(nextAt)} to ${stage === 1 ? "bud" : "bloom"}</span>` : ""}</button>`;
       }).join("")}</div>`
     : `<div class="empty">Nothing planted in ${MONTHS[m]} yet.</div>`);
 }
@@ -637,38 +651,60 @@ $("f-delete").addEventListener("click", async () => {
 });
 
 /* ---------- Categories dialog ---------- */
-function renderCats(){
-  $("catrows").innerHTML = state.categories.map(c => `<div class="catrow" style="--c:${safeColor(c.color)}" data-cid="${c.id}">
-    <span class="dot"></span><input id="cn-${c.id}" data-k="name" value="${esc(c.name)}" aria-label="Category name">
-    <div class="swatches">${COLORS.map(col => `<button class="sw" style="--c:${col}" data-color="${col}" aria-label="Color ${col}" aria-pressed="${col===c.color}"></button>`).join("")}</div>
-    <div class="mrow"><input id="ml-${c.id}" data-k="label" value="${esc(c.metric?.label)}" placeholder="Custom metric, e.g. Points won" aria-label="Metric name">
-      <input id="mu-${c.id}" data-k="unit" value="${esc(c.metric?.unit)}" placeholder="Unit" aria-label="Metric unit">
-      <button class="btn ghost danger" data-delcat="${c.id}">Delete</button></div></div>`).join("")
-    || `<div class="empty">No categories yet.</div>`;
+let catSel = null; // the category open for editing in the dialog
+const sessionCount = id => state.entries.filter(e => e.catId === id).length;
+function deleteLabel(c){
+  const n = sessionCount(c.id);
+  return `Delete ${c.name || "this category"}${n ? ` and its ${n} ${n === 1 ? "session" : "sessions"}` : ""}`;
 }
-function openCats(){ renderCats(); $("cat-dlg").showModal(); }
+function renderCats(){
+  if (!catById(catSel)) catSel = state.categories[0]?.id || null;
+  const pills = state.categories.map(c => `<button type="button" class="catpill" data-pick="${c.id}" style="--c:${safeColor(c.color)}" aria-pressed="${c.id === catSel}"><i></i><span>${esc(c.name) || "Untitled"}</span></button>`).join("");
+  const c = catById(catSel);
+  const editor = c ? `<div class="catedit" data-cid="${c.id}" style="--c:${safeColor(c.color)}">
+      <label for="cn-${c.id}">Name</label>
+      <input id="cn-${c.id}" data-k="name" value="${esc(c.name)}">
+      <span class="lbl">Flower color</span>
+      <div class="swatches">${COLORS.map(col => `<button type="button" class="sw" style="--c:${col}" data-color="${col}" aria-label="Color ${col}" aria-pressed="${col===c.color}"></button>`).join("")}</div>
+      <label for="ml-${c.id}">Custom metric</label>
+      <div class="mrow"><input id="ml-${c.id}" data-k="label" value="${esc(c.metric?.label)}" placeholder="e.g. Points won"><input id="mu-${c.id}" data-k="unit" value="${esc(c.metric?.unit)}" placeholder="Unit" aria-label="Metric unit"></div>
+      <button type="button" class="btn delete" data-delcat="${c.id}">${esc(deleteLabel(c))}</button>
+    </div>` : `<div class="empty">No categories yet. Add one to start your garden.</div>`;
+  $("catrows").innerHTML = (pills ? `<div class="catpills" role="group" aria-label="Choose a category">${pills}</div>` : "") + editor;
+}
+function openCats(id){ if (id) catSel = id; renderCats(); $("cat-dlg").showModal(); }
 $("catrows").addEventListener("input", ev => {
   const row = ev.target.closest("[data-cid]"); if (!row) return;
   const c = catById(row.dataset.cid), k = ev.target.dataset.k;
-  if (k === "name") c.name = ev.target.value;
+  if (!c || !k) return;
+  if (k === "name"){
+    c.name = ev.target.value;
+    // Update labels in place; re-rendering would steal focus from the input being typed in.
+    const pill = $("catrows").querySelector(`[data-pick="${c.id}"] span`);
+    if (pill) pill.textContent = c.name || "Untitled";
+    row.querySelector("[data-delcat]").textContent = deleteLabel(c);
+  }
   else { c.metric ||= {label:"",unit:""}; c.metric[k] = ev.target.value; }
   save();
 });
 $("catrows").addEventListener("click", async ev => {
-  const sw = ev.target.closest("[data-color]"), del = ev.target.closest("[data-delcat]");
-  if (sw){ const row = sw.closest("[data-cid]"); catById(row.dataset.cid).color = sw.dataset.color; save(); renderCats(); }
+  const pick = ev.target.closest("[data-pick]"), sw = ev.target.closest("[data-color]"), del = ev.target.closest("[data-delcat]");
+  if (pick){ catSel = pick.dataset.pick; renderCats(); return; }
+  if (sw){ const c = catById(sw.closest("[data-cid]").dataset.cid); if (c){ c.color = sw.dataset.color; save(); renderCats(); } return; }
   if (del){
-    const id = del.dataset.delcat, n = state.entries.filter(e => e.catId === id).length;
-    const name = catById(id)?.name || "this category";
-    if (!await askConfirm(`Delete ${name}?`, n ? `Its ${n} ${n===1?"session":"sessions"} will be deleted too.` : "It has no sessions.")) return;
-    state.categories = state.categories.filter(c => c.id !== id);
+    const id = del.dataset.delcat, c = catById(id); if (!c) return;
+    const n = sessionCount(id);
+    if (!await askConfirm(`Delete ${c.name || "this category"}?`, n ? `Its ${n} ${n===1?"session":"sessions"} will be removed from your garden and totals too. This can't be undone.` : "It has no sessions. This can't be undone.")) return;
+    const i = state.categories.findIndex(x => x.id === id);
+    state.categories = state.categories.filter(x => x.id !== id);
     state.entries = state.entries.filter(e => e.catId !== id);
+    catSel = state.categories[Math.min(i, state.categories.length - 1)]?.id || null;
     save(); renderCats();
   }
 });
 $("add-cat").addEventListener("click", () => {
   const c = {id:uid(), name:"New category", color:COLORS[state.categories.length % COLORS.length], metric:{label:"", unit:""}, created:Date.now()};
-  state.categories.push(c); save(); renderCats();
+  state.categories.push(c); catSel = c.id; save(); renderCats();
   const inp = $("cn-"+c.id); inp.focus(); inp.select();
 });
 $("cats-done").addEventListener("click", () => $("cat-dlg").close());
@@ -677,7 +713,8 @@ $("cat-dlg").addEventListener("close", render);
 /* ---------- Wiring ---------- */
 $("v-cal").addEventListener("click", () => { view = "cal"; render(); });
 $("v-tot").addEventListener("click", () => { view = "tot"; render(); });
-$("open-cats").addEventListener("click", openCats);
+$("open-cats").addEventListener("click", () => openCats());
+$("month-totals").addEventListener("click", ev => { const bed = ev.target.closest("[data-bed]"); if (bed) openCats(bed.dataset.bed); });
 $("log-btn").addEventListener("click", () => openEntry(null));
 $("prev-m").addEventListener("click", () => { cursor = new Date(cursor.getFullYear(), cursor.getMonth()-1, 1); renderCalendar(); });
 $("next-m").addEventListener("click", () => { cursor = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1); renderCalendar(); });
@@ -690,6 +727,8 @@ $("day-panel").addEventListener("click", ev => {
 });
 document.querySelectorAll("[data-range]").forEach(b => b.addEventListener("click", () => { range = b.dataset.range; renderTotals(); }));
 $("table").addEventListener("click", ev => {
+  const editCat = ev.target.closest("[data-editcat]");
+  if (editCat) return openCats(editCat.dataset.editcat);
   const ed = ev.target.closest("[data-entry]");
   if (ed) return openEntry(state.entries.find(x => x.id === ed.dataset.entry));
   const row = ev.target.closest("[data-cat]"); if (!row) return;
